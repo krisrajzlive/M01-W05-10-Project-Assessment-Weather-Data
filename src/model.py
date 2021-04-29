@@ -12,6 +12,9 @@ class UserModel:
     def __init__(self):
         self._db = Database()
         self._latest_error = ''
+        self.username = ''
+        self.emailid = ''
+        self.role = ''
     
     # Latest error is used to store the error string in case an issue. It's reset at the beginning of a new function call
     @property
@@ -43,8 +46,9 @@ class UserModel:
     # Finds user document based on the unique auto-generated MongoDB object id
     def getuser_by_object_id(self, obj_id, username, execusername):
         self._latest_error = ''
-        if username == None:
-            self.latest_error = "username can't be blank"
+
+        if username == None or execusername == None:
+            self.latest_error = "username or executing username can't be blank"
 
         userrole = Utils().get_userrole(execusername, execusername)
 
@@ -60,8 +64,8 @@ class UserModel:
     def get_userrole_by_username(self, username, execusername):
         self._latest_error = ''
 
-        if username == None:
-            self._latest_error = "username can't be blank"
+        if username == None or execusername == None:
+            self.latest_error = "username or executing username can't be blank"
         
         execuserdoc = self.__find({'username': execusername})
         userdoc = self.__find({'username': username})
@@ -71,15 +75,19 @@ class UserModel:
             if Authorization.isvalid_admin_operation(self.whoami, execuserdoc['role'], 'read') == True:
                 return userrole
             else:
-                self._latest_error = 'The user {0} is not authorized to access the method insert'.format(execusername)
-                return
+                self._latest_error = 'The user {0} is not authorized to access the method get_userrole_by_username'.format(execusername)
+                return 
         else:
             self._latest_error = 'User {0} not found '.format(username)
 
     # Returns user role for the given username
     # No access rights is required
     def get_userrole_by_userdocument(self, userdocument):
-        return userdocument['role']
+        self._latest_error = ''
+        if userdocument:
+            return userdocument['role']
+        else:
+            self._latest_error = 'user document is blank'
 
     # Private function (starting with __) to be used as the base for all find function
     # no access rights validation is required
@@ -92,19 +100,19 @@ class UserModel:
     def insert(self, username, email, role, execusername):
         self._latest_error = ''
         if username == None or email == None or role == None or execusername == None:
-            self.latest_error = "username or email or role or executing username can't be blank"
+            self._latest_error = "username or email or role or executing username can't be blank"
         
         userrole = self.get_userrole_by_username(execusername, execusername)
 
         if userrole == None or Authorization.isvalid_admin_operation(self.whoami, userrole, 'write') == False:
-            self._latest_error = 'The user {0} is not authorized to access the method'.format(execusername)
+            self._latest_error = 'The user {0} is not authorized to insert user'.format(execusername)
             return 
 
         user_document = self.getuser_by_username(username, execusername)
 
         if (user_document != None):
             self._latest_error = f'Username {username} already exists'
-            return -1
+            return
         
         user_data = {'username': username, 'email': email, 'role': role}
         user_obj_id = self._db.insert_single_data(UserModel.USER_COLLECTION, user_data)
@@ -117,6 +125,9 @@ class UserAccessModel:
     def __init__(self):
         self._db = Database()
         self._latest_error = ''
+        self.username = ''
+        self.device_id = ''
+        self.access = ''
 
     # Latest error is used to store the error string in case an issue. It's reset at the beginning of a new function call
     @property
@@ -129,14 +140,36 @@ class UserAccessModel:
         return (type(self).__name__)
 
     # Finds user document based on the unique auto-generated MongoDB object id
-    def getuseraccess_by_object_id(self, obj_id, userrole):
-        Authorization.isvalid_admin_operation(self.whoami, userrole, 'read')
+    def getuseraccess_by_object_id(self, obj_id, execusername):
+        self._latest_error = ''
+
+        if object_id == None or execusername == None:
+            self._latest_error = "object_id or executing username can't be blank"
+            return
+        
+        execuserrole = Utils.get_userrole(execusername, execusername)
+
+        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+            self._latest_error = "The user {0} is not authorized to access the method getuseraccess_by_object_id".format(execusername)
+            return
+        
         key = {'_id': ObjectId(obj_id)}
-        return self.__find(key, userrole)
+        return self.__find(key)
 
     # Find authorised devices by username
-    def find_authorized_deviceids_by_username(self, username):
-        #Authorization.isvalid(self.whoami, role, 'read')
+    def find_authorized_deviceids_by_username(self, username, execusername):
+        self._latest_error = ''
+
+        if username == None or execusername == None:
+            self._latest_error = "Username or executing username can't be blank"
+            return
+        
+        execuserrole = Utils.get_userrole(execusername, execusername)
+
+        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+            self._latest_error = "The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
+            return
+
         query = {'username': username}
         documents = self._db.get_single_data_byquery(UserAccessModel.USERACCESS_COLLECTION, query)
         deviceids = []
@@ -145,9 +178,18 @@ class UserAccessModel:
         return deviceids;
 
     # The find user access method returns user access r/rw
-    def get_user_access(self, username, deviceid):
-        if len(username) == 0 or len(deviceid) == 0:
-            raise Exception("username or deviceid can't be blank")
+    def get_user_access(self, username, deviceid, execusername):
+        self._latest_error = ''
+
+        if username == None or deviceid == None or execusername == None:
+            self._latest_error = "Username or deviceid or executing username can't be blank"
+            return
+
+        execuserrole = Utils().get_userrole(execusername, execusername)
+
+        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+            self._latest_error = "The user {0} is not authorized to access the method get_user_access".format(execusername)
+            return
 
         query = {"username": username, "device_id": deviceid}
         useraccess_document = self._db.get_single_data_byquery(UserAccessModel.USERACCESS_COLLECTION, query)
@@ -155,34 +197,42 @@ class UserAccessModel:
         if useraccess_document.count() > 0:
             for doc in useraccess_document:
                 return doc["access"]
-        #else:
-           #raise Exception("Can't find user's role")
 
     # Private function (starting with __) to be used as the base for all find functions
-    def __find(self, key, userrole):
-        # Authorization.isvalid(self.whoami, userrole)
+    def __find(self, key):
         user_document = self._db.get_single_data(UserAccessModel.USERACCESS_COLLECTION, key)
         return user_document
 
     # Private function (starting with __) to be used as the base for all find functions
-    def __findmultiple(self, key, userrole):
-        # Authorization.isvalid(self.whoami, userrole)
+    def __findmultiple(self, key):
         user_document = self._db.get_multiple_data(UserAccessModel.USERACCESS_COLLECTION, key)
         return user_document
 
     # This first checks if a user already exists with that username. If it does, it populates latest_error and returns -1
     # If a user doesn't already exist, it'll insert a new document and return the same to the caller
-    def insert(self, username, device_id, access, userrole):
-        Authorization.isvalid_admin_operation(self.whoami, userrole, 'write')
+    def insert(self, username, device_id, access, execusername):
         self._latest_error = ''
-        #user_document = self.getuser_by_username(username, userrole)
-        #if (user_document):
-        #    self._latest_error = f'Username {username} already exists'
-        #    return -1
+        
+        if username == None or device_id == None or access == None or execusername == None:
+            self._latest_error = 'one or more of the parameter(s) are blank'
+            return
+
+        execuserrole = UserModel().get_userrole_by_username(execusername, execusername)
+        userrole = UserModel().get_userrole_by_username(username, execusername)
+
+        if Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'write') == False:
+            self._latest_error = 'The user {0} is not authorized to insert useraccess'.format(execusername)
+            return
+
+        useraccess_document = self.get_user_access(username, device_id, execusername)
+
+        if (useraccess_document != None):
+            self._latest_error = 'User access for user {0} on device {1} exists already'.format(username, device_id)
+            return
 
         useraccess_data = {'username': username, 'device_id': device_id, 'access': access}
         useraccess_obj_id = self._db.insert_single_data(UserAccessModel.USERACCESS_COLLECTION, useraccess_data)
-        return self.getuseraccess_by_object_id(useraccess_obj_id, userrole)
+        return self.getuseraccess_by_object_id(useraccess_obj_id, execusername)
 
 # Device document contains device_id (String), desc (String), type (String - temperature/humidity) and manufacturer (String) fields
 # Any users who has been granted access can perform the allowed operation (read or read/write)
@@ -299,7 +349,7 @@ class DailyReportsModel:
 
     def __init__(self):
         self._db = Database()
-        self._last_error = ''
+        self._latest_error = ''
 
     # Returns name of the class
     @property
@@ -317,46 +367,39 @@ class DailyReportsModel:
     def __admin_aggregate_report(self, startdate, enddate, role, deviceids = None):
         return(self._db.get_admin_aggregate_weather_data(startdate, enddate, role, deviceids))
     
-    def donotuse1print_default_aggregate_report(self, startdate, enddate, userid, deviceids = None):
-        Authorization.isvalid(self.whoami, role, 'read')
-
-        print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
-        
-        for doc in self.__default_aggregate_report(startdate, enddate, role, deviceids):
-            print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
-
-    def donotuse2print_admin_aggregate_report(self, startdate, enddate, role, deviceids = None):
-        Authorization.isvalid(self.whoami, role, 'read')
-
-        print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
-        
-        for doc in self.__admin_aggregate_report(startdate, enddate, role, deviceids):
-            print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
-    
     # the report prints aggredate weather data of the given user for the devices they have access to
     # admin can see the report for all the devices hence deviceids are optional
-    def print_aggregate_report(self, startdate, enddate, username, role = None, deviceids = None):
-        
+    def print_aggregate_report(self, startdate, enddate, execusername, deviceids = None):
+        self._latest_error = ''
         utils = Utils()
 
-        if len(username) == 0:
-            raise Exception("Aggregate Report: username can't be blank")
-        
+        if execusername == None:
+            self._latest_error = "Aggregate Report: username can't be blank"
+            return
+
         if startdate == None or enddate == None:
-            raise Exception("Aggregate Report: Date range is required to run the report")
+            self._latest_error = "Aggregate Report: Date range is required to run the report"
+            return
 
         # determine the role, admin has access to all the device data
         # default users have access only specific device data
-        if role == None and len(username) > 0:
-            role =  utils.get_userrole(username, username)
+
+        role = Utils().get_userrole(execusername, execusername)
+
+        if role == None:
+            self._latest_error = "The non-existent user {0} can't access the method print_aggregate_report".format(execusername)
+            return
 
         if utils.truncateandcapitalize(role) == 'ADMIN':
              print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
              for doc in self.__admin_aggregate_report(startdate, enddate, role, deviceids):
                  print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
-            
-        if deviceids == None:
-            deviceids = utils.get_authorized_deviceids(username)
+        else: #assume default role user running the report
+            if deviceids == None:
+                deviceids = utils.get_authorized_deviceids(execusername, execusername)
+            print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
+            for doc in self.__default_aggregate_report(startdate, enddate, role, deviceids):
+                print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
   
     def __formatdate(self, datelist):
         tempdate = datetime(datelist[0], datelist[1], datelist[2])
@@ -421,7 +464,7 @@ class Authorization:
             return False
         # Only admin can perform any operation in USERACCESSMODEL
         elif model == 'USERACCESSMODEL' and role != 'ADMIN':
-            raise Exception('Usertype ' + role + ' is not authorized to perform ' + operation + ' on ' + model)
+            return False
         elif model == 'DEVICEMODEL' and role == 'ADMIN':
             raise Exception('Usertype ' + role + ' is not authorized to perform ' + operation + ' on ' + model)
       
@@ -432,7 +475,7 @@ class Authorization:
 
     # isvalidoperation metho is used to determine whether users have appropriate access to the device
     @staticmethod
-    def isvalidweatherinsert(username, deviceid):
+    def isvalidweatherinsert(username, deviceid, execusername):
 
         if len(username) == 0 or len(deviceid) == 0:
             raise Exception("Username or deviceid can't be blank")
@@ -442,7 +485,7 @@ class Authorization:
         if Utils.truncateandcapitalize(role) == 'ADMIN':
             return True
         
-        useraccess = UserAccessModel().get_user_access(username, deviceid)
+        useraccess = UserAccessModel().get_user_access(username, deviceid, execusername)
 
         if useraccess != None and Utils.truncateandcapitalize(useraccess) == 'RW':
             return True
@@ -507,12 +550,12 @@ class Utils:
         return user.get_userrole_by_username(username, execusername)
 
     # Function get_authorized_deviceids returns device ids as list for the given username
-    def get_authorized_deviceids(self, username):
+    def get_authorized_deviceids(self, username, execusername):
         useraccess = UserAccessModel()
-        return useraccess.find_authorized_deviceids_by_username(username)
+        return useraccess.find_authorized_deviceids_by_username(username, execusername)
     
     # The method print_error is used to print error messages if any
     @staticmethod
     def print_error(errormessage):
         if errormessage != None:
-            print(errormessage)
+            print("Error: {0}".format(errormessage))

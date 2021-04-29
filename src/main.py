@@ -19,72 +19,125 @@ util = Utils()
 userrole = util.get_userrole(appArgument.username, appArgument.username)
 print('User Role: ', userrole)
 
-#inserting user - only admins can
-#try:
+# begin usermodel --------------------------------------------------------------------------------------------------------------------------
 user = UserModel()
-
-# only admin user should be able to access
+ 
+# only admin user should be able to access the method getuser_by_username
 userdoc1 = user.getuser_by_username('user_1',appArgument.username)
 if userdoc1:
-    print('getuser_by_username called successfully')
+    print('Got user_1 details successfully')
 else:
     Utils.print_error(user.latest_error)
 
 # default user can't access the method
 userdoc2 = user.getuser_by_username('user_2','user_1')
-if userdoc2 == None:
+if userdoc2:
+    print('Got user_2 details successfully')
+else:
     Utils.print_error(user.latest_error)
 
-# if you run the application admin and if the user does not exist already, this should go
-user.insert('raj', 'krisrajz@gmail.com', 'default', appArgument.username)
-print('inserting raj firsttime')
-util.print_error(user.latest_error)
-# Trying to insert an existing user name - should throw error message
-user.insert('raj', 'krisrajz@gmail.com', 'default', appArgument.username)
-util.print_error(user.latest_error)
+# only admin user should be able to access the method get_userrole_by_username
+userrole1 = user.get_userrole_by_username('user_1',appArgument.username)
+if userrole1:
+    print('User_1s role is {0}'.format(userrole1))
+else:
+    Utils.print_error(user.latest_error)
+
+userrole2 = user.get_userrole_by_username('user_1','user_2')
+if userrole2:
+    print('User_1s role is {0}'.format(userrole2))
+else:
+    Utils.print_error(user.latest_error)
+
+# only admin user should be able to access the method insert
+# inserting a new user
+user.username = 'raj'
+user.emailid = 'krisrajz@gmail.com'
+user.role = 'default'
+
+inserteduser1 = user.insert(user.username, user.emailid, user.role, appArgument.username)
+if inserteduser1:
+    print('inserted user {0} successfully'.format(user.username))
+else:
+    Utils.print_error(user.latest_error)
+
+# Trying to insert the same user again should throw error message
+user.username = 'raj'
+user.emailid = 'krisrajz@gmail.com'
+user.role = 'default'
+
+inserteduser2 = user.insert(user.username, user.emailid, user.role, appArgument.username)
+if inserteduser2:
+    print('inserted user {0} successfully'.format(user.username))
+else:
+    Utils.print_error(user.latest_error)
+
 # A default user user_1 is trying to insert user - should throw error message
-user.insert('raj1','krisrajz@gmail.com','default','user_1')
-util.print_error(user.latest_error)
-print('Inserted user successfully')
-#except:
-    #print(sys.exc_info()[1])
+user.username = 'krisraj'
+user.emailid = 'krisrajz@gmail.com'
+user.role = 'default'
+
+inserteduser3 = user.insert(user.username, user.emailid, user.role, 'user_1')
+if inserteduser3:
+    print('inserted user {0} successfully'.format(user.username))
+else:
+    Utils.print_error(user.latest_error)
+
+# end usermodel --------------------------------------------------------------------------------------------------------------------------------
+
+# begin useraccess -----------------------------------------------------------------------------------------------------------------------------
 
 #inserting useraccess - only admins can
-try:
-    useraccess = UserAccessModel()
-    print('inserting useraccess user_1 dt003 r')
-    useraccess.insert('user_1', 'DT003', 'r', userrole)
+
+useraccess = UserAccessModel()
+
+useraccess.username = 'raj'
+useraccess.device_id = 'DT003'
+useraccess.access = "rw"
+
+useraccess1 = useraccess.insert(useraccess.username, useraccess.device_id, useraccess.access, appArgument.username)
+if useraccess1:
+    print('Successfully created useraccess for user {0}'.format(useraccess.username))
+else:
+    Utils.print_error(useraccess.latest_error)
+
+# trying to insert duplicate
+useraccess.username = 'raj'
+useraccess.device_id = 'DT003'
+useraccess.access = "rw"
+
+useraccess2 = useraccess.insert(useraccess.username, useraccess.device_id, useraccess.access, appArgument.username)
+if useraccess2:
     print('inserting useraccess user_2 DH002 rw')
-    useraccess.insert('user_2', 'DH002', 'rw', userrole)
-    print('Inserted user access successfully')
-except:
-    print(sys.exc_info()[1])
+else:
+    Utils.print_error(useraccess.latest_error)
+
+
+# end useraccess -------------------------------------------------------------------------------------------------------------------------------
 
 #inserting device
-try:
-    device = DeviceModel()
+
+    #device = DeviceModel()
     #admin
     #device.insert('DT001', 'Temperature Sensor', 'Temperature', 'Acme', appArgument.username)
     #user without rights
     #device.insert('DT001', 'Temperature Sensor', 'Temperature', 'Acme', 'user_1')
     #user with rights
-    print('inserting device DH002 Humidity Sensor Humidity Krab user_2')
-    device.insert('DH002', 'Humidity Sensor', 'Humidity', 'Krab', 'user_2')
-    print('Inserted device successfully')
-except:
-    print(sys.exc_info()[1])
+    #print('inserting device DH002 Humidity Sensor Humidity Krab user_2')
+    #device.insert('DH002', 'Humidity Sensor', 'Humidity', 'Krab', 'user_2')
+    #print('Inserted device successfully')
+
 
 #inserting weather data both admin and default users can perform
-try:
-    weather = WeatherDataModel()
+
+   # weather = WeatherDataModel()
     #admin
     #weather.insert('DEV01',41,datetime.datetime.now,appArgument.username)
     #default user
-    weather.insert('DH002',41,datetime.now(),'user_2')
-    weather.insert('DH001',41,datetime.now(),'user_1')
-    print('Inserted weather data successfully')
-except:
-    print(sys.exc_info()[1])
+    #weather.insert('DH002',41,datetime.now(),'user_2')
+    #weather.insert('DH001',41,datetime.now(),'user_1')
+    #print('Inserted weather data successfully')
+
 
 #aggregate report
 dailyreport = DailyReportsModel()
@@ -96,7 +149,7 @@ dailyreport.print_aggregate_report(startDate, endDate, appArgument.username)
 
 #run report for specific devices
 deviceids = ["DH001","DH002","DT001","DT002"]
-dailyreport.print_aggregate_report(startDate, endDate, appArgument.username, userrole, deviceids)
+dailyreport.print_aggregate_report(startDate, endDate, appArgument.username, deviceids)
 
 
 """2
