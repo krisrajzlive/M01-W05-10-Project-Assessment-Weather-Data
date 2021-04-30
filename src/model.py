@@ -159,20 +159,21 @@ class UserAccessModel:
     # Find authorised devices by username
     def find_authorized_deviceids_by_username(self, username, execusername):
         self._latest_error = ''
-
+        
         if username == None or execusername == None:
-            self._latest_error = "Error: Username or executing username can't be blank"
+            self._latest_error = "Username or executing username can't be blank"
             return
         
         execuserrole = Utils().get_userrole(username, execusername)
-
-        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
-            self._latest_error = "Error: The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
+        #if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+        if execuserrole == None:
+            self._latest_error = "The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
             return
 
         query = {'username': username}
         documents = self._db.get_single_data_byquery(UserAccessModel.USERACCESS_COLLECTION, query)
         deviceids = []
+
         for doc in documents:
             deviceids.append(doc['device_id'])
         return deviceids;
@@ -187,7 +188,8 @@ class UserAccessModel:
 
         execuserrole = Utils().get_userrole(execusername, execusername)
 
-        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+        #if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
+        if execuserrole == None:
             self._latest_error = "The user {0} is not authorized to access the method get_user_access".format(execusername)
             return
 
@@ -242,6 +244,10 @@ class DeviceModel:
     def __init__(self):
         self._db = Database()
         self._latest_error = ''
+        #self.device_id = ''
+        #self.desc = ''
+        #self.type = ''
+        #self.manufacturer = ''
 
     # Returns name of the class
     @property
@@ -256,38 +262,52 @@ class DeviceModel:
     # Since device id should be unique in devices collection, this provides a way to fetch the device document based on the device id
     #def find_by_device_id(self, device_id, role):
     def find_by_device_id(self, username, role, device_id):
+        self._latest_error = ''
         #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
-        Authorization.isvalidoperation(username, device_id, 'read')
+        #Authorization.isvalidoperation(username, device_id, 'read')
         key = {'device_id': device_id}
         return self.__find(key, role)
  
     # Finds a document based on the unique auto-generated MongoDB object id 
     def find_by_object_id(self, obj_id, role):
-        Authorization.isvalid_admin_operation(self.whoami, role, 'read')
+        self._latest_error = ''
+        #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
         key = {'_id': ObjectId(obj_id)}
         return self.__find(key, role)
     
     # Private function (starting with __) to be used as the base for all find functions
     def __find(self, key, role):
-        Authorization.isvalid_admin_operation(self.whoami, role, 'read')
+        #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
         device_document = self._db.get_single_data(DeviceModel.DEVICE_COLLECTION, key)
         return device_document
     
     # This first checks if a device already exists with that device id. If it does, it populates latest_error and returns -1
     # If a device doesn't already exist, it'll insert a new document and return the same to the caller
-    def insert(self, device_id, desc, type, manufacturer, username):
-        #Authorization.isvalid_admin_operation(self.whoami, role, 'write')
-        Authorization.isvalidoperation(username, device_id,"RW")
+    def insert(self, device_id, desc, devicetype, manufacturer, execusername):
         self._latest_error = ''
-        role = Utils().get_userrole(username, username)
-        device_document = self.find_by_device_id(username, role, device_id)
+        
+        if device_id == None or desc == None or devicetype == None or manufacturer == None or execusername == None:
+            self._latest_error = "One or more paramters can't be blank"
+            return
+        
+        execuserrole = Utils().get_userrole(execusername, execusername)
+       
+        if execuserrole == None:
+            self._latest_error = "The user {0} can't create the device".format(execusername)
+            return
+
+        if Authorization().isvaliddeviceinsert(execusername, execuserrole, device_id, "RW") == False:
+            self._latest_error = "The user {0} can't create the device".format(execusername)
+            return
+
+        device_document = self.find_by_device_id(execusername, execuserrole, device_id)
         if (device_document):
-            self._latest_error = f'Device id {0} already exists'.format(device_id)
+            self._latest_error = 'Device id {0} already exists'.format(device_id)
             return 
         
-        device_data = {'device_id': device_id, 'desc': desc, 'type': type, 'manufacturer': manufacturer}
+        device_data = {'device_id': device_id, 'desc': desc, 'type': devicetype, 'manufacturer': manufacturer}
         device_obj_id = self._db.insert_single_data(DeviceModel.DEVICE_COLLECTION, device_data)
-        return self.find_by_object_id(device_obj_id, role)
+        return self.find_by_object_id(device_obj_id, execuserrole)
 
 # Weather data document contains device_id (String), value (Integer), and timestamp (Date) fields
 class WeatherDataModel:
@@ -327,11 +347,21 @@ class WeatherDataModel:
     
     # This first checks if a data item already exists at a particular timestamp for a device id. If it does, it populates latest_error and returns -1.
     # If it doesn't already exist, it'll insert a new document and return the same to the caller
-    def insert(self, device_id, value, timestamp, username):
+    def insert(self, device_id, value, timestamp, execusername):
+        
+        if device_id == None or value == None or timestramp == None or execusername == None:
+            self._latest_error = "One or more parameters are blank"
+            return
+        
+        execuserrole = Utils().get_userrole(execusername, execusername)
+        if execuserrole == None:
+            self._latest_error = "The user {0} is not authorized to insert weather data".format(execusername)
+            return
+        
         #Authorization.isvalidweatherinsert(username, device_id)
-        Authorization.isvalidoperation(username, device_id,"RW")
+        Authorization.isvalidoperation(execusername, device_id,"RW")
         self._latest_error = ''
-        role = Utils().get_userrole(username, username)
+        role = Utils().get_userrole(execusername, execusername)
 
         wdata_document = self.find_by_device_id_and_timestamp(device_id, timestamp, role)
         
@@ -386,7 +416,7 @@ class DailyReportsModel:
         role = utils.get_userrole(execusername, execusername)
 
         if role == None:
-            self._latest_error = "Error: The non-existent user {0} can't access the method print_aggregate_report".format(execusername)
+            self._latest_error = "The non-existent user {0} can't access the method print_aggregate_report".format(execusername)
             return
 
         if utils.truncateandcapitalize(role) == 'ADMIN':
@@ -394,12 +424,26 @@ class DailyReportsModel:
              for doc in self.__admin_aggregate_report(startdate, enddate, role, deviceids):
                  print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
         else: #assume default role user running the report
-            if deviceids == None:
-                print('finding authorised device id for user {0}'.format(execusername))
-                deviceids = utils.get_authorized_deviceids(execusername, execusername)
-            print(deviceids)
+            #if deviceids == None:
+            authdeviceids = utils.get_authorized_deviceids(execusername, execusername)
+            devlist = []
+
+            if deviceids != None and authdeviceids != None:
+                devs = set(deviceids)
+                authdevs = set(authdeviceids)
+                devlist = list(devs.intersection(authdevs))
+
+                if devlist == None:
+                    self._latest_error = "Can't find authorized devices for user {0}".format(execusername)
+                    return
+            elif deviceids == None and authdeviceids != None:
+                devlist = authdeviceids
+            else:
+                self._latest_error = "Can't find authorized devices for user {0}".format(execusername)
+                return
+
             print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
-            for doc in self.__default_aggregate_report(startdate, enddate, role, deviceids):
+            for doc in self.__default_aggregate_report(startdate, enddate, role, devlist):
                 print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
   
     def __formatdate(self, datelist):
@@ -474,6 +518,29 @@ class Authorization:
         else:
             return False
 
+    # The method isvaliddeviceinsert is used to perform whether an user is authorized to insert device data
+    def isvaliddeviceinsert(self, username, userrole, deviceid, useraccess):
+        self._latest_error = ''
+
+        # this is not working!!! though the condition returns true when print function is used
+        if Utils.truncateandcapitalize(userrole) == 'ADMIN':
+           return True
+
+        if username == None or deviceid == None or useraccess == None:
+            self._latest_error = "Authorization -> isvaliddeviceinsert: one or more parameters can't be blank"
+            return False
+        
+        useraccess = UserAccessModel().get_user_access(username, deviceid, username)
+       
+        if useraccess == None:
+            self._latest_error = "Authorization -> isvaliddeviceinsert: user {0} do not have access to the device {1}".format(username, deviceid)
+            return False
+        elif Utils.truncateandcapitalize(useraccess) != useraccess:
+            self._latest_error = "Authorization -> isvaliddeviceinsert: user {0} do not have appropriate access to the device {1}".format(username, deviceid)
+            return False
+        else:
+            return True
+
     # isvalidoperation metho is used to determine whether users have appropriate access to the device
     @staticmethod
     def isvalidweatherinsert(username, deviceid, execusername):
@@ -487,23 +554,6 @@ class Authorization:
             return True
         
         useraccess = UserAccessModel().get_user_access(username, deviceid, execusername)
-
-        if useraccess != None and Utils.truncateandcapitalize(useraccess) == 'RW':
-            return True
-        else:
-            raise Exception('The user {0} is not authorised to insert data for the device {1}'.format(username, deviceid))
-
-    @staticmethod
-    def isvaliddeviceinsert(username, deviceid):
-        if len(username) == 0 or len(deviceid) == 0:
-            raise Exception("Username or deviceid can't be blank")
-        
-        role = Utils().get_userrole(username, username)
-
-        if Utils.truncateandcapitalize(role) == 'ADMIN':
-            return True
-        
-        useraccess = UserAccessModel().get_user_access(username, deviceid)
 
         if useraccess != None and Utils.truncateandcapitalize(useraccess) == 'RW':
             return True

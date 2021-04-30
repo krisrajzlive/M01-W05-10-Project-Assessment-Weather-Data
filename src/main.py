@@ -101,7 +101,7 @@ if useraccess1:
 else:
     Utils.print_error(useraccess.latest_error)
 
-# trying to insert duplicate
+# insert duplicate
 useraccess.username = 'raj'
 useraccess.device_id = 'DT003'
 useraccess.access = "rw"
@@ -112,22 +112,49 @@ if useraccess2:
 else:
     Utils.print_error(useraccess.latest_error)
 
-
 # end useraccess -------------------------------------------------------------------------------------------------------------------------------
+
+# begin device ---------------------------------------------------------------------------------------------------------------------------------
 
 #inserting device
 
-    #device = DeviceModel()
-    #admin
-    #device.insert('DT001', 'Temperature Sensor', 'Temperature', 'Acme', appArgument.username)
-    #user without rights
-    #device.insert('DT001', 'Temperature Sensor', 'Temperature', 'Acme', 'user_1')
-    #user with rights
-    #print('inserting device DH002 Humidity Sensor Humidity Krab user_2')
-    #device.insert('DH002', 'Humidity Sensor', 'Humidity', 'Krab', 'user_2')
-    #print('Inserted device successfully')
+    device = DeviceModel()
 
+    device.device_id = 'DT0010'
+    device.desc = 'Temperature Sensor'
+    device.manufacturer = 'Acme'
+    device.type = 'Temperature'
 
+    device.insert(device.device_id, device.desc, device.type, device.manufacturer, appArgument.username)
+
+    if len(device.latest_error) == 0:
+        print('created new device {0}'.format(device.device_id))
+    Utils.print_error(device.latest_error)
+
+    device.device_id = 'DT001'
+    device.desc = 'Temperature Sensor'
+    device.manufacturer = 'Acme'
+    device.type = 'Temperature'
+
+    #default user inserting duplicate device
+    device.insert(device.device_id, device.desc, device.type, device.manufacturer, appArgument.username)
+
+    if len(device.latest_error) == 0:
+        print('created new device {0}'.format(device.device_id))
+    Utils.print_error(device.latest_error)
+    
+    device.device_id = 'DH004'
+    device.desc = 'Humidity Sensor'
+    device.manufacturer = 'Krab'
+    device.type = 'Humidity'
+
+    device.insert(device.device_id, device.desc, device.type, device.manufacturer, 'user_2')
+
+    if len(device.latest_error) == 0:
+        print('created new device {0}'.format(device.device_id))
+    Utils.print_error(device.latest_error)
+
+# end device ----------------------------------------------------------------------------------------------------------------------------------
 #inserting weather data both admin and default users can perform
 
    # weather = WeatherDataModel()
@@ -139,24 +166,28 @@ else:
     #print('Inserted weather data successfully')
 
 
-#aggregate report
-print('Running daily report')
+#aggregate report begin ------------------------------------------------------------------------------------------------------------------------
+
 dailyreport = DailyReportsModel()
 startDate = datetime.strptime("20/12/01 01:00:00", "%y/%m/%d %H:%M:%S") # date should be in YY/MM/DD format
 endDate = datetime.strptime("20/12/03 23:59:59", "%y/%m/%d %H:%M:%S")
 
-#run report for all the devices
+#run report for all the devices for the login user
+print('Printing report for all the devices for user {0}'.format(appArgument.username))
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username)
-Utils().print_error(dailyreport.latest_error);
+Utils.print_error(dailyreport.latest_error)
 
-#run report for specific devices
-deviceids = ["DH001","DH002","DT001","DT002"]
+#run report for specific devices and the reports runs only for authorized devices
+print('Printing report for specific devices only if have access')
+deviceids = ["DH001","DH002","DT002","DT003"]
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username, deviceids)
+Utils.print_error(dailyreport.latest_error)
 
-#run report for specific devices for specific user
-deviceids = ["DH001","DH002","DT001","DT002"]
-dailyreport.print_aggregate_report(startDate, endDate, 'user_1', deviceids)
+#non-existent user
+dailyreport.print_aggregate_report(startDate,endDate, 'john')
+Utils.print_error(dailyreport.latest_error)
 
+#aggregate report ends -------------------------------------------------------------------------------------------------------------------------
 
 """2
 

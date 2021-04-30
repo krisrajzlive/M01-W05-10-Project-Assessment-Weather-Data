@@ -30,8 +30,6 @@ class Database:
     
     # This method inserts the data in a new document. It assumes that any uniqueness check is done by the caller
     def insert_single_data(self, collection, data):
-        #if(usertype.strip().upper() == 'ADMIN'):
-            #raise Exception('Sorry, The user is not allowed to perform this operation!')
         db_collection = self._db[collection]
         document = db_collection.insert_one(data)
         return document.inserted_id
@@ -187,99 +185,8 @@ class Database:
                     }
                 }
             ])
-        elif self.__truncateandcapitalize(role) == 'ADMIN' and deviceid == None:
-            documents = db_collection.aggregate([
-            {
-                "$match": {
-                    "timestamp" : {
-                        "$gte" : startdate,
-                        "$lte" : enddate
-                    }
-                }
-            },
-            {
-                "$group": {
-                        "_id": {
-                            "deviceid": "$device_id",
-                            "month": { "$month": "$timestamp" },
-                            "day": { "$dayOfMonth": "$timestamp" },
-                            "year": { "$year": "$timestamp" }
-                        },
-                        "Average" : {
-                            "$avg" : "$value"
-                        },
-                        "Minimum" : {
-                            "$min" : "$value"
-                        },
-                        "Maximum" : {
-                            "$max" : "$value"
-                        }
-                    }
-            },
-            {
-                "$project": {
-                    "deviceid": "$_id.deviceid",
-                    "day": ["$_id.year", "$_id.month", "$_id.day"],
-                    "Average": "$Average",
-                    "Minimum": "$Minimum",
-                    "Maximum": "$Maximum",
-                }
-            },
-            {
-                "$sort": {
-                    "deviceid": 1,
-                    "day": 1
-                }
-            }
-        ])
-        elif self.__truncateandcapitalize(role) == 'ADMIN' and deviceid != None:
-            documents = db_collection.aggregate([
-                {
-                    "$match": {
-                        "device_id" : deviceid,
-                        "timestamp" : {
-                            "$gte" : startdate,
-                            "$lte" : enddate
-                        }
-                    }
-                },
-                {
-                    "$group": {
-                            "_id": {
-                                "deviceid": "$device_id",
-                                "month": { "$month": "$timestamp" },
-                                "day": { "$dayOfMonth": "$timestamp" },
-                                "year": { "$year": "$timestamp" }
-                            },
-                            "Average" : {
-                                "$avg" : "$value"
-                            },
-                            "Minimum" : {
-                                "$min" : "$value"
-                            },
-                            "Maximum" : {
-                                "$max" : "$value"
-                            }
-                        }
-                },
-                {
-                    "$project": {
-                        "deviceid": "$_id.deviceid",
-                        "day": ["$_id.year", "$_id.month", "$_id.day"],
-                        "Average": "$Average",
-                        "Minimum": "$Minimum",
-                        "Maximum": "$Maximum",
-                    }
-                },
-                {
-                    "$sort": {
-                        "deviceid": 1,
-                        "day": 1
-                    }
-                }
-            ])
         else:
-            raise Exception('Error: Aggregate report has invalid parameter(s)')
+            raise Exception('Aggregate report has invalid parameter(s)')
         return documents
     
     # method used to truncate leading and trailing spaces and convert the parameter to uppercase
