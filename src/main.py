@@ -140,16 +140,22 @@ else:
 
 
 #aggregate report
+print('Running daily report')
 dailyreport = DailyReportsModel()
 startDate = datetime.strptime("20/12/01 01:00:00", "%y/%m/%d %H:%M:%S") # date should be in YY/MM/DD format
 endDate = datetime.strptime("20/12/03 23:59:59", "%y/%m/%d %H:%M:%S")
 
 #run report for all the devices
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username)
+Utils().print_error(dailyreport.latest_error);
 
 #run report for specific devices
 deviceids = ["DH001","DH002","DT001","DT002"]
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username, deviceids)
+
+#run report for specific devices for specific user
+deviceids = ["DH001","DH002","DT001","DT002"]
+dailyreport.print_aggregate_report(startDate, endDate, 'user_1', deviceids)
 
 
 """2

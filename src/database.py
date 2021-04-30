@@ -140,7 +140,7 @@ class Database:
     # Assumption: date should be in date format, not in string.
     def get_aggregate_weather_data(self, startdate, enddate, role, deviceids = None):
         db_collection = self._db[Database.WEATHER_DATA]
-        
+
         if self.__truncateandcapitalize(role) != 'ADMIN' and deviceids != None:
             documents = db_collection.aggregate([
                 {
@@ -279,7 +279,7 @@ class Database:
                 }
             ])
         else:
-            raise Exception('Aggregate report has invalid parameter(s)')
+            raise Exception('Error: Aggregate report has invalid parameter(s)')
         return documents
     
     # method used to truncate leading and trailing spaces and convert the parameter to uppercase

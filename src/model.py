@@ -65,20 +65,20 @@ class UserModel:
         self._latest_error = ''
 
         if username == None or execusername == None:
-            self.latest_error = "username or executing username can't be blank"
+            self._latest_error = "username or executing username can't be blank"
         
         execuserdoc = self.__find({'username': execusername})
         userdoc = self.__find({'username': username})
         
         if userdoc != None and execuserdoc != None:
             userrole = userdoc['role']
-            if Authorization.isvalid_admin_operation(self.whoami, execuserdoc['role'], 'read') == True:
-                return userrole
-            else:
-                self._latest_error = 'The user {0} is not authorized to access the method get_userrole_by_username'.format(execusername)
-                return 
+            #if Authorization.isvalid_admin_operation(self.whoami, execuserdoc['role'], 'read') == True:
+            return userrole
+            #else:
+            #    self._latest_error = 'The user {0} is not authorized to access the method get_userrole_by_username'.format(execusername)
+            #    return 
         else:
-            self._latest_error = 'User {0} not found '.format(username)
+            self._latest_error = 'User {0} not found'.format(username)
 
     # Returns user role for the given username
     # No access rights is required
@@ -161,13 +161,13 @@ class UserAccessModel:
         self._latest_error = ''
 
         if username == None or execusername == None:
-            self._latest_error = "Username or executing username can't be blank"
+            self._latest_error = "Error: Username or executing username can't be blank"
             return
         
-        execuserrole = Utils.get_userrole(execusername, execusername)
+        execuserrole = Utils().get_userrole(username, execusername)
 
         if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
-            self._latest_error = "The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
+            self._latest_error = "Error: The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
             return
 
         query = {'username': username}
@@ -220,7 +220,7 @@ class UserAccessModel:
         execuserrole = UserModel().get_userrole_by_username(execusername, execusername)
         userrole = UserModel().get_userrole_by_username(username, execusername)
 
-        if Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'write') == False:
+        if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'write') == False:
             self._latest_error = 'The user {0} is not authorized to insert useraccess'.format(execusername)
             return
 
@@ -383,11 +383,10 @@ class DailyReportsModel:
 
         # determine the role, admin has access to all the device data
         # default users have access only specific device data
-
-        role = Utils().get_userrole(execusername, execusername)
+        role = utils.get_userrole(execusername, execusername)
 
         if role == None:
-            self._latest_error = "The non-existent user {0} can't access the method print_aggregate_report".format(execusername)
+            self._latest_error = "Error: The non-existent user {0} can't access the method print_aggregate_report".format(execusername)
             return
 
         if utils.truncateandcapitalize(role) == 'ADMIN':
@@ -396,7 +395,9 @@ class DailyReportsModel:
                  print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
         else: #assume default role user running the report
             if deviceids == None:
+                print('finding authorised device id for user {0}'.format(execusername))
                 deviceids = utils.get_authorized_deviceids(execusername, execusername)
+            print(deviceids)
             print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
             for doc in self.__default_aggregate_report(startdate, enddate, role, deviceids):
                 print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
@@ -557,5 +558,5 @@ class Utils:
     # The method print_error is used to print error messages if any
     @staticmethod
     def print_error(errormessage):
-        if errormessage != None:
+        if errormessage != None and len(errormessage)>0:
             print("Error: {0}".format(errormessage))
