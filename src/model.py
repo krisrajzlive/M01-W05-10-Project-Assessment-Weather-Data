@@ -260,11 +260,8 @@ class DeviceModel:
         return self._latest_error
     
     # Since device id should be unique in devices collection, this provides a way to fetch the device document based on the device id
-    #def find_by_device_id(self, device_id, role):
     def find_by_device_id(self, username, role, device_id):
         self._latest_error = ''
-        #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
-        #Authorization.isvalidoperation(username, device_id, 'read')
         key = {'device_id': device_id}
         return self.__find(key, role)
  
@@ -316,6 +313,9 @@ class WeatherDataModel:
     def __init__(self):
         self._db = Database()
         self._latest_error = ''
+        self.device_id = ''
+        self.value = 0
+        self.timestamp = ''
 
     # Returns name of the class
     @property
@@ -328,19 +328,19 @@ class WeatherDataModel:
         return self._latest_error
     
     # Since device id and timestamp should be unique in weather_data collection, this provides a way to fetch the data document based on the device id and timestamp
-    def find_by_device_id_and_timestamp(self, device_id, timestamp, role):
+    def find_by_device_id_and_timestamp(self, device_id, timestamp):
         #Authorization.isvalid(self.whoami, role)
         key = {'device_id': device_id, 'timestamp': timestamp}
-        return self.__find(key, role)
+        return self.__find(key)
     
     # Finds a document based on the unique auto-generated MongoDB object id 
-    def find_by_object_id(self, obj_id, role):
+    def find_by_object_id(self, obj_id):
         #Authorization.isvalid(self.whoami, role)
         key = {'_id': ObjectId(obj_id)}
-        return self.__find(key, role)
+        return self.__find(key)
     
     # Private function (starting with __) to be used as the base for all find functions
-    def __find(self, key, role):
+    def __find(self, key):
         #Authorization.isvalid(self.whoami, role)
         wdata_document = self._db.get_single_data(WeatherDataModel.WEATHER_DATA_COLLECTION, key)
         return wdata_document
@@ -348,30 +348,27 @@ class WeatherDataModel:
     # This first checks if a data item already exists at a particular timestamp for a device id. If it does, it populates latest_error and returns -1.
     # If it doesn't already exist, it'll insert a new document and return the same to the caller
     def insert(self, device_id, value, timestamp, execusername):
-        
-        if device_id == None or value == None or timestramp == None or execusername == None:
+        self._latest_error = ''
+
+        if device_id == None or value == None or timestamp == None or execusername == None:
             self._latest_error = "One or more parameters are blank"
             return
         
         execuserrole = Utils().get_userrole(execusername, execusername)
-        if execuserrole == None:
-            self._latest_error = "The user {0} is not authorized to insert weather data".format(execusername)
-            return
         
-        #Authorization.isvalidweatherinsert(username, device_id)
-        Authorization.isvalidoperation(execusername, device_id,"RW")
-        self._latest_error = ''
-        role = Utils().get_userrole(execusername, execusername)
+        if Authorization().isvalidweatherinsert(execusername, execuserrole, device_id, "RW") == False:
+            self._latest_error = "The user {0} can't insert weather data".format(execusername)
+            return
 
-        wdata_document = self.find_by_device_id_and_timestamp(device_id, timestamp, role)
+        wdata_document = self.find_by_device_id_and_timestamp(device_id, timestamp)
         
         if (wdata_document):
-            self._latest_error = f'Data for timestamp {timestamp} for device id {device_id} already exists'
-            return -1
+            self._latest_error = f'Weather Data for for device id {device_id} already exists'
+            return
         
         weather_data = {'device_id': device_id, 'value': value, 'timestamp': timestamp}
         wdata_obj_id = self._db.insert_single_data(WeatherDataModel.WEATHER_DATA_COLLECTION, weather_data)
-        return self.find_by_object_id(wdata_obj_id, role)
+        return self.find_by_object_id(wdata_obj_id)
 
 # DailyReportsModel document contains average, minimum, maximum deviceid and date fields
 class DailyReportsModel:
@@ -519,46 +516,48 @@ class Authorization:
             return False
 
     # The method isvaliddeviceinsert is used to perform whether an user is authorized to insert device data
-    def isvaliddeviceinsert(self, username, userrole, deviceid, useraccess):
+    def isvaliddeviceinsert(self, username, userrole, deviceid, access):
         self._latest_error = ''
 
-        # this is not working!!! though the condition returns true when print function is used
-        if Utils.truncateandcapitalize(userrole) == 'ADMIN':
-           return True
-
-        if username == None or deviceid == None or useraccess == None:
+        if username == None or userrole == None or deviceid == None or access == None:
             self._latest_error = "Authorization -> isvaliddeviceinsert: one or more parameters can't be blank"
             return False
+
+        if Utils.truncateandcapitalize(userrole) == 'ADMIN':
+           return True
         
         useraccess = UserAccessModel().get_user_access(username, deviceid, username)
        
         if useraccess == None:
-            self._latest_error = "Authorization -> isvaliddeviceinsert: user {0} do not have access to the device {1}".format(username, deviceid)
+            self._latest_error = "The User {0} do not have access to the device {1} to create it".format(username, deviceid)
             return False
-        elif Utils.truncateandcapitalize(useraccess) != useraccess:
-            self._latest_error = "Authorization -> isvaliddeviceinsert: user {0} do not have appropriate access to the device {1}".format(username, deviceid)
+        elif Utils.truncateandcapitalize(useraccess) != access:
+            self._latest_error = "The User {0} do not have appropriate access to the device {1} to create it".format(username, deviceid)
             return False
         else:
             return True
 
-    # isvalidoperation metho is used to determine whether users have appropriate access to the device
-    @staticmethod
-    def isvalidweatherinsert(username, deviceid, execusername):
-
-        if len(username) == 0 or len(deviceid) == 0:
-            raise Exception("Username or deviceid can't be blank")
+    # isvalidweatherinsert method is used to determine whether users have appropriate access to the device to insert it
+    def isvalidweatherinsert(self, username, userrole, deviceid, access):
+        self._latest_error = ''
         
-        role = Utils().get_userrole(username, username)
+        if username == None or userrole == None or deviceid == None or access == None:
+            self._latest_error = "One or more of the parameters can't be blank"
+            return False
 
-        if Utils.truncateandcapitalize(role) == 'ADMIN':
+        if Utils.truncateandcapitalize(userrole) == 'ADMIN':
             return True
         
-        useraccess = UserAccessModel().get_user_access(username, deviceid, execusername)
-
-        if useraccess != None and Utils.truncateandcapitalize(useraccess) == 'RW':
-            return True
+        useraccess = UserAccessModel().get_user_access(username, deviceid, username)
+        
+        if useraccess == None:
+            self._latest_error = "The user {0} do not have access to the device {1} to insert weather data".format(username, deviceid)
+            return False
+        elif Utils.truncateandcapitalize(useraccess) != access:
+            self._latest_error = "The user {0} do not have appropriate access to the device {1} to insert weather data".format(username, deviceid)
+            return False
         else:
-            raise Exception('The user {0} is not authorised to insert data for the device {1}'.format(username, deviceid))
+            return True
 
     # isvalidoperation metho is used to determine whether users have appropriate access to the device
     @staticmethod

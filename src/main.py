@@ -155,16 +155,52 @@ else:
     Utils.print_error(device.latest_error)
 
 # end device ----------------------------------------------------------------------------------------------------------------------------------
-#inserting weather data both admin and default users can perform
 
-   # weather = WeatherDataModel()
-    #admin
+# begin weather data --------------------------------------------------------------------------------------------------------------------------
+
+    weather = WeatherDataModel()
+
+    weather.device_id = 'DH0011'
+    weather.value = 39
+    weather.timestamp = datetime.now()
+
     #weather.insert('DEV01',41,datetime.datetime.now,appArgument.username)
-    #default user
-    #weather.insert('DH002',41,datetime.now(),'user_2')
-    #weather.insert('DH001',41,datetime.now(),'user_1')
-    #print('Inserted weather data successfully')
+    weather.insert(weather.device_id, weather.value, weather.timestamp, appArgument.username)
+    
+    if len(weather.latest_error) == 0:
+        print('inserted weather data for device {0}'.format(weather.device_id))
+    
+    Utils.print_error(weather.latest_error)
+    
+    # inserting duplicate
+    weather.insert(weather.device_id, weather.value, weather.timestamp, appArgument.username)
+    
+    if len(weather.latest_error) == 0:
+        print('inserted weather data for device {0}'.format(weather.device_id))
+    
+    Utils.print_error(weather.latest_error)
 
+    #default user with access rights
+    weather.device_id = 'DH002'
+    weather.value = 39
+    weather.timestamp = datetime.now()
+    weather.insert(weather.device_id, weather.value, weather.timestamp, 'user_2')
+    
+    if len(weather.latest_error) == 0:
+        print('inserted weather data for device {0}'.format(weather.device_id))
+    
+    Utils.print_error(weather.latest_error)
+
+    #default user without access rights
+    weather.insert(weather.device_id, weather.value, weather.timestamp, 'user_1')
+    
+    if len(weather.latest_error) == 0:
+        print('inserted weather data for device {0}'.format(weather.device_id))
+    
+    Utils.print_error(weather.latest_error)
+
+
+# end weather data ----------------------------------------------------------------------------------------------------------------------------
 
 #aggregate report begin ------------------------------------------------------------------------------------------------------------------------
 
@@ -173,12 +209,10 @@ startDate = datetime.strptime("20/12/01 01:00:00", "%y/%m/%d %H:%M:%S") # date s
 endDate = datetime.strptime("20/12/03 23:59:59", "%y/%m/%d %H:%M:%S")
 
 #run report for all the devices for the login user
-print('Printing report for all the devices for user {0}'.format(appArgument.username))
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username)
 Utils.print_error(dailyreport.latest_error)
 
 #run report for specific devices and the reports runs only for authorized devices
-print('Printing report for specific devices only if have access')
 deviceids = ["DH001","DH002","DT002","DT003"]
 dailyreport.print_aggregate_report(startDate, endDate, appArgument.username, deviceids)
 Utils.print_error(dailyreport.latest_error)
@@ -188,65 +222,3 @@ dailyreport.print_aggregate_report(startDate,endDate, 'john')
 Utils.print_error(dailyreport.latest_error)
 
 #aggregate report ends -------------------------------------------------------------------------------------------------------------------------
-
-"""2
-
-useraccesstype = useraccess.get_user_access('user_1', 'DT003')
-print('User access type: ', useraccesstype)
-
-deviceid = "DT001"
-startDate = datetime.strptime("20/12/01 01:00:00", "%y/%m/%d %H:%M:%S")
-endDate = datetime.strptime("20/12/03 23:59:59", "%y/%m/%d %H:%M:%S")
-
-print('start date ', startDate)
-print('end date ', endDate)
-
-dailyreportmodel = DailyReportsModel()
-#
-#for doc in dailyreportmodel.aggregate_report(deviceid, startDate, endDate):
-#    print(doc)
-
-# Shows how to initiate and search in the users collection based on a username
-user_coll = UserModel()
-user_document = user_coll.getuser_by_username(appArgument.username, 'default')
-print('Login user role by username', user_coll.get_userrole_by_username(appArgument.username));
-print('Login user role by document:', user_coll.get_userrole_by_userdocument(user_document))
-
-user_document = user_coll.getuser_by_username('admin', 'admin')
-if user_document:
-    print(user_document)
-
-# Shows a successful attempt on how to insert a user
-user_document = user_coll.insert('test_3', 'test_3@example.com', 'default', userrole)
-if user_document == -1:
-    print(user_coll.latest_error)
-else:
-    print(user_document)
-
-# Shows how to initiate and search in the devices collection based on a device id
-device_coll = DeviceModel()
-device_document = device_coll.find_by_device_id('DT002', 'admin')
-
-if device_document:
-    print(device_document)
-
-# Shows a successful attempt on how to insert a new device
-device_document = device_coll.insert('DT201', 'Temperature Sensor', 'Temperature', 'Acme', userrole)
-if device_document == -1:
-    print(device_coll.latest_error)
-else:
-    print(device_document)
-
-# Shows how to initiate and search in the weather_data collection based on a device_id and timestamp
-wdata_coll = WeatherDataModel()
-wdata_document = wdata_coll.find_by_device_id_and_timestamp('DT002', datetime(2020, 12, 2, 13, 30, 0), userrole)
-if wdata_document:
-    print(wdata_document)
-
-# Shows a failed attempt on how to insert a new data point
-wdata_document = wdata_coll.insert('DT002', 12, datetime(2020, 12, 2, 13, 30, 0), userrole)
-if wdata_document == -1:
-    print(wdata_coll.latest_error)
-else:
-    print(wdata_document)
-"""
