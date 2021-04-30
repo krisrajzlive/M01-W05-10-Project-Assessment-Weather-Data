@@ -9,6 +9,8 @@ Assumption #2: login user credentials have been validated outside the applicatio
 How to run the application: 'python main.py admin' (without quotes) to run the application as admin user, 'python main.py user_1' (without quotes) to run the application as user_1
 ADMIN Role: Are allowed to perform anything
 DEFAULT Role: Are allowed to perform inserting device and weather data if they have access to, can also run reports for the devices they have access to
+Some user-names are hard-coded to demonstrate how it works for admin, authorized and un-authorized or non-existent user
+I suggest passing username to functions as appArgument.username as I have done in many places.
 """
 
 appArgument = AppArgument(sys.argv)
