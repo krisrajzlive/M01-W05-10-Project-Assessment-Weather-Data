@@ -7,6 +7,8 @@ import sys
 Assumption #1: pass existing username via commandline and hence no need to validate the login user exists
 Assumption #2: login user credentials have been validated outside the application
 How to run the application: 'python main.py admin' (without quotes) to run the application as admin user, 'python main.py user_1' (without quotes) to run the application as user_1
+ADMIN Role: Are allowed to perform anything
+DEFAULT Role: Are allowed to perform inserting device and weather data if they have access to, can also run reports for the devices they have access to
 """
 
 appArgument = AppArgument(sys.argv)
@@ -15,7 +17,8 @@ print('Hi! ', appArgument.username)
 
 util = Utils()
 
-# Problem 1a. determine user role before performing any operation
+# Problem 1. access devices based on user access
+
 userrole = util.get_userrole(appArgument.username, appArgument.username)
 print('User Role: ', userrole)
 
@@ -202,7 +205,7 @@ else:
 
 # end weather data ----------------------------------------------------------------------------------------------------------------------------
 
-#aggregate report begin ------------------------------------------------------------------------------------------------------------------------
+#Problem #2: Aggregate Report : begins ------------------------------------------------------------------------------------------------------------------------
 
 dailyreport = DailyReportsModel()
 startDate = datetime.strptime("20/12/01 01:00:00", "%y/%m/%d %H:%M:%S") # date should be in YY/MM/DD format

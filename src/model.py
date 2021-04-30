@@ -345,7 +345,7 @@ class WeatherDataModel:
         wdata_document = self._db.get_single_data(WeatherDataModel.WEATHER_DATA_COLLECTION, key)
         return wdata_document
     
-    # This first checks if a data item already exists at a particular timestamp for a device id. If it does, it populates latest_error and returns -1.
+    # This first checks if a data item already exists. If it does, it populates latest_error and returns -1.
     # If it doesn't already exist, it'll insert a new document and return the same to the caller
     def insert(self, device_id, value, timestamp, execusername):
         self._latest_error = ''
@@ -420,8 +420,7 @@ class DailyReportsModel:
              print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
              for doc in self.__admin_aggregate_report(startdate, enddate, role, deviceids):
                  print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
-        else: #assume default role user running the report
-            #if deviceids == None:
+        else: 
             authdeviceids = utils.get_authorized_deviceids(execusername, execusername)
             devlist = []
 
@@ -520,7 +519,7 @@ class Authorization:
         self._latest_error = ''
 
         if username == None or userrole == None or deviceid == None or access == None:
-            self._latest_error = "Authorization -> isvaliddeviceinsert: one or more parameters can't be blank"
+            self._latest_error = "One or more parameters can't be blank"
             return False
 
         if Utils.truncateandcapitalize(userrole) == 'ADMIN':
@@ -558,25 +557,6 @@ class Authorization:
             return False
         else:
             return True
-
-    # isvalidoperation metho is used to determine whether users have appropriate access to the device
-    @staticmethod
-    def isvalidoperation(username, deviceid, accesstype):
-
-        if len(username) == 0 or len(deviceid) == 0:
-            raise Exception("Username or deviceid can't be blank")
-        
-        role = Utils().get_userrole(username, username)
-
-        if Utils.truncateandcapitalize(role) == 'ADMIN':
-            return True
-        
-        useraccess = UserAccessModel().get_user_access(username, deviceid)
-
-        if useraccess != None and Utils.truncateandcapitalize(useraccess) == accesstype:
-            return True
-        else:
-            raise Exception('The user {0} is not authorised to perform the operation for the device {1}'.format(username, deviceid))
 
 # This class contains methods redundantly used
 class Utils:
