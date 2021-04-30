@@ -293,7 +293,7 @@ class DeviceModel:
             self._latest_error = "The user {0} can't create the device".format(execusername)
             return
 
-        if Authorization().isvaliddeviceinsert(execusername, execuserrole, device_id, "RW") == False:
+        if Authorization().isvalidinsert(execusername, execuserrole, device_id, "RW", "create device data") == False:
             self._latest_error = "The user {0} can't create the device".format(execusername)
             return
 
@@ -356,7 +356,7 @@ class WeatherDataModel:
         
         execuserrole = Utils().get_userrole(execusername, execusername)
         
-        if Authorization().isvalidweatherinsert(execusername, execuserrole, device_id, "RW") == False:
+        if Authorization().isvalidinsert(execusername, execuserrole, device_id, "RW", "insert weather data") == False:
             self._latest_error = "The user {0} can't insert weather data".format(execusername)
             return
 
@@ -515,10 +515,10 @@ class Authorization:
             return False
 
     # The method isvaliddeviceinsert is used to perform whether an user is authorized to insert device data
-    def isvaliddeviceinsert(self, username, userrole, deviceid, access):
+    def isvalidinsert(self, username, userrole, deviceid, access, operation):
         self._latest_error = ''
 
-        if username == None or userrole == None or deviceid == None or access == None:
+        if username == None or userrole == None or deviceid == None or access == None or operation == None:
             self._latest_error = "One or more parameters can't be blank"
             return False
 
@@ -528,32 +528,10 @@ class Authorization:
         useraccess = UserAccessModel().get_user_access(username, deviceid, username)
        
         if useraccess == None:
-            self._latest_error = "The User {0} do not have access to the device {1} to create it".format(username, deviceid)
+            self._latest_error = "The User {0} do not have access to the device {1} to {2} ".format(username, deviceid, operation)
             return False
         elif Utils.truncateandcapitalize(useraccess) != access:
-            self._latest_error = "The User {0} do not have appropriate access to the device {1} to create it".format(username, deviceid)
-            return False
-        else:
-            return True
-
-    # isvalidweatherinsert method is used to determine whether users have appropriate access to the device to insert it
-    def isvalidweatherinsert(self, username, userrole, deviceid, access):
-        self._latest_error = ''
-        
-        if username == None or userrole == None or deviceid == None or access == None:
-            self._latest_error = "One or more of the parameters can't be blank"
-            return False
-
-        if Utils.truncateandcapitalize(userrole) == 'ADMIN':
-            return True
-        
-        useraccess = UserAccessModel().get_user_access(username, deviceid, username)
-        
-        if useraccess == None:
-            self._latest_error = "The user {0} do not have access to the device {1} to insert weather data".format(username, deviceid)
-            return False
-        elif Utils.truncateandcapitalize(useraccess) != access:
-            self._latest_error = "The user {0} do not have appropriate access to the device {1} to insert weather data".format(username, deviceid)
+            self._latest_error = "The User {0} do not have appropriate access to the device {1} to {2} ".format(username, deviceid, operation)
             return False
         else:
             return True
