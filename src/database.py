@@ -131,7 +131,7 @@ class Database:
                 }
             ])
         else:
-            raise Exception('Aggregate report has invalid parameter(s)')
+            raise AggregateReportParameterError
         return documents
 
     # This method returns aggregate device data per device per day for the given deviceid and and date ranges
@@ -186,9 +186,12 @@ class Database:
                 }
             ])
         else:
-            raise Exception('Aggregate report has invalid parameter(s)')
+            raise AggregateReportParameterError
         return documents
     
     # method used to truncate leading and trailing spaces and convert the parameter to uppercase
     def __truncateandcapitalize(self, arg):
         return arg.strip().upper()
+
+class AggregateReportParameterError(Exception):
+    pass

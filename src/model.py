@@ -1,10 +1,10 @@
 # Imports Database class from the project to provide basic functionality for database access
-from database import Database
+from database import Database, AggregateReportParameterError
 # Imports ObjectId to convert to the correct format before querying in the db
 from bson.objectid import ObjectId
 from datetime import datetime
 
-# User document contains username (String), email (String), and role (String) fields
+# User document contains username, email, and role  fields
 # Only admin users are authorized to access (r/w) this class
 class UserModel:
     USER_COLLECTION = 'users'
@@ -72,11 +72,7 @@ class UserModel:
         
         if userdoc != None and execuserdoc != None:
             userrole = userdoc['role']
-            #if Authorization.isvalid_admin_operation(self.whoami, execuserdoc['role'], 'read') == True:
             return userrole
-            #else:
-            #    self._latest_error = 'The user {0} is not authorized to access the method get_userrole_by_username'.format(execusername)
-            #    return 
         else:
             self._latest_error = 'User {0} not found'.format(username)
 
@@ -119,6 +115,7 @@ class UserModel:
         return self.getuser_by_object_id(user_obj_id, username, execusername)
 
 # UserAccess document contains username and devices the user has access to
+# only admin users are authorized to access this class
 class UserAccessModel:
     USERACCESS_COLLECTION = 'useraccess'
 
@@ -165,7 +162,6 @@ class UserAccessModel:
             return
         
         execuserrole = Utils().get_userrole(username, execusername)
-        #if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
         if execuserrole == None:
             self._latest_error = "The user {0} is not authorized to access the method find_authorized_deviceids_by_username".format(execusername)
             return
@@ -188,7 +184,6 @@ class UserAccessModel:
 
         execuserrole = Utils().get_userrole(execusername, execusername)
 
-        #if execuserrole == None or Authorization.isvalid_admin_operation(self.whoami, execuserrole, 'read') == False:
         if execuserrole == None:
             self._latest_error = "The user {0} is not authorized to access the method get_user_access".format(execusername)
             return
@@ -237,7 +232,7 @@ class UserAccessModel:
         return self.getuseraccess_by_object_id(useraccess_obj_id, execusername)
 
 # Device document contains device_id (String), desc (String), type (String - temperature/humidity) and manufacturer (String) fields
-# Any users who has been granted access can perform the allowed operation (read or read/write)
+# Any users who has been granted access to the device can perform the allowed operation (read or read/write)
 class DeviceModel:
     DEVICE_COLLECTION = 'devices'
 
@@ -268,13 +263,11 @@ class DeviceModel:
     # Finds a document based on the unique auto-generated MongoDB object id 
     def find_by_object_id(self, obj_id, role):
         self._latest_error = ''
-        #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
         key = {'_id': ObjectId(obj_id)}
         return self.__find(key, role)
     
     # Private function (starting with __) to be used as the base for all find functions
     def __find(self, key, role):
-        #Authorization.isvalid_admin_operation(self.whoami, role, 'read')
         device_document = self._db.get_single_data(DeviceModel.DEVICE_COLLECTION, key)
         return device_document
     
@@ -388,14 +381,24 @@ class DailyReportsModel:
     def latest_error(self):
         return self._latest_error
 
+    # called when the application is run as default user, deviceids are authorized device ids that the default users has access to
     def __default_aggregate_report(self, startdate, enddate, role, deviceids = None):
-        return(self._db.get_aggregate_weather_data(startdate, enddate, role, deviceids))
+        try:
+            return(self._db.get_aggregate_weather_data(startdate, enddate, role, deviceids))
+        except AggregateReportParameterError:
+            self._latest_error = 'Invalid parameter passed to the report'
+            Utils.print_error(self.latest_error)
 
+    # called when the application is run as admin
     def __admin_aggregate_report(self, startdate, enddate, role, deviceids = None):
-        return(self._db.get_admin_aggregate_weather_data(startdate, enddate, role, deviceids))
+        try:
+            return(self._db.get_admin_aggregate_weather_data(startdate, enddate, role, deviceids))
+        except AggregateReportParameterError:
+            self._latest_error = 'Invalid parameter passed to the report'
+            Utils.print_error(self.latest_error)
     
     # the report prints aggredate weather data of the given user for the devices they have access to
-    # admin can see the report for all the devices hence deviceids are optional
+    # admin can see the report for all the devices hence deviceids are optional but it is required for default users though being initialized as None
     def print_aggregate_report(self, startdate, enddate, execusername, deviceids = None):
         self._latest_error = ''
         utils = Utils()
@@ -506,8 +509,6 @@ class Authorization:
         # Only admin can perform any operation in USERACCESSMODEL
         elif model == 'USERACCESSMODEL' and role != 'ADMIN':
             return False
-        elif model == 'DEVICEMODEL' and role == 'ADMIN':
-            raise Exception('Usertype ' + role + ' is not authorized to perform ' + operation + ' on ' + model)
       
         if role == 'ADMIN':
             return True

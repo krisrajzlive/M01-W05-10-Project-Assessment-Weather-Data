@@ -6,9 +6,13 @@ import sys
 """
 Assumption #1: pass existing username via commandline and hence no need to validate the login user exists
 Assumption #2: login user credentials have been validated outside the application
+Assumption #3: Only certain methods are secured as the rest of the methods both accessed by admin and default users
+
 How to run the application: 'python main.py admin' (without quotes) to run the application as admin user, 'python main.py user_1' (without quotes) to run the application as user_1
+
 ADMIN Role: Are allowed to perform anything
 DEFAULT Role: Are allowed to perform inserting device and weather data if they have access to, can also run reports for the devices they have access to
+
 Some user-names are hard-coded to demonstrate how it works for admin, authorized and un-authorized or non-existent user
 I suggest passing username to functions as appArgument.username as I have done in many places.
 """
@@ -24,7 +28,7 @@ util = Utils()
 userrole = util.get_userrole(appArgument.username, appArgument.username)
 print('User Role: ', userrole)
 
-# begin usermodel --------------------------------------------------------------------------------------------------------------------------
+# begin user operations  --------------------------------------------------------------------------------------------------------------------------
 user = UserModel()
  
 # only admin user should be able to access the method getuser_by_username
@@ -88,9 +92,9 @@ if inserteduser3:
 else:
     Utils.print_error(user.latest_error)
 
-# end usermodel --------------------------------------------------------------------------------------------------------------------------------
+# end user operations --------------------------------------------------------------------------------------------------------------------------------
 
-# begin useraccess -----------------------------------------------------------------------------------------------------------------------------
+# begin useraccess operations -----------------------------------------------------------------------------------------------------------------------------
 
 #inserting useraccess - only admins can
 
@@ -117,9 +121,9 @@ if useraccess2:
 else:
     Utils.print_error(useraccess.latest_error)
 
-# end useraccess -------------------------------------------------------------------------------------------------------------------------------
+# end useraccess operations -------------------------------------------------------------------------------------------------------------------------------
 
-# begin device ---------------------------------------------------------------------------------------------------------------------------------
+# begin device operations ---------------------------------------------------------------------------------------------------------------------------------
 
 #inserting device
 
@@ -141,7 +145,7 @@ else:
     device.manufacturer = 'Acme'
     device.type = 'Temperature'
 
-    #default user inserting duplicate device
+    # user inserting duplicate device
     device.insert(device.device_id, device.desc, device.type, device.manufacturer, appArgument.username)
 
     if len(device.latest_error) == 0:
@@ -153,15 +157,16 @@ else:
     device.manufacturer = 'Krab'
     device.type = 'Humidity'
 
+    # a default user inserting device data
     device.insert(device.device_id, device.desc, device.type, device.manufacturer, 'user_2')
 
     if len(device.latest_error) == 0:
         print('created new device {0}'.format(device.device_id))
     Utils.print_error(device.latest_error)
 
-# end device ----------------------------------------------------------------------------------------------------------------------------------
+# end device operations ----------------------------------------------------------------------------------------------------------------------------------
 
-# begin weather data --------------------------------------------------------------------------------------------------------------------------
+# begin weather data operations --------------------------------------------------------------------------------------------------------------------------
 
     weather = WeatherDataModel()
 
@@ -205,7 +210,7 @@ else:
     Utils.print_error(weather.latest_error)
 
 
-# end weather data ----------------------------------------------------------------------------------------------------------------------------
+# end weather data operations ----------------------------------------------------------------------------------------------------------------------------
 
 #Problem #2: Aggregate Report : begins ------------------------------------------------------------------------------------------------------------------------
 
