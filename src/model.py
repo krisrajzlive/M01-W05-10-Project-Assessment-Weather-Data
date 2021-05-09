@@ -420,10 +420,10 @@ class DailyReportsModel:
             return
 
         if utils.truncateandcapitalize(role) == 'ADMIN':
-             print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
-             for doc in self.__admin_aggregate_report(startdate, enddate, role, deviceids):
-                 print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
+            #admin has access to all devices
+            reportdocs = self.__admin_aggregate_report(startdate, enddate, role, deviceids)
         else: 
+            # determine default user's devices
             authdeviceids = utils.get_authorized_deviceids(execusername, execusername)
             devlist = []
 
@@ -440,11 +440,15 @@ class DailyReportsModel:
             else:
                 self._latest_error = "Can't find authorized devices for user {0}".format(execusername)
                 return
+            
+            reportdocs = self.__default_aggregate_report(startdate, enddate, role, devlist)
 
+        if reportdocs:
             print('Printing report from {0} to {1}'.format(startdate.strftime("%d-%m-%Y"), enddate.strftime("%d-%m-%Y")))
-            for doc in self.__default_aggregate_report(startdate, enddate, role, devlist):
-                print('Device ID: {0}, Day: {1}, Average: {2}, Minimum: {3}, Maximum: {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
-  
+            print('Device ID \t Day \t\t Average \t Minimum \tMaximum')
+            for doc in reportdocs:
+                print('{0} \t\t {1} \t {2} \t\t {3} \t\t {4}'.format(doc['deviceid'], self.__formatdate(doc['day']), round(doc['Average']), round(doc['Minimum']), round(doc['Maximum'])))
+
     def __formatdate(self, datelist):
         tempdate = datetime(datelist[0], datelist[1], datelist[2])
         return str(tempdate.strftime("%d-%m-%Y"))
